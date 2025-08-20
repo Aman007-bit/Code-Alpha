@@ -1,0 +1,362 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Responsive Image Gallery</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --card: #12161b;
+      --muted: #9aa4b2;
+      --text: #e6edf3;
+      --accent: #7c9cff;
+    }* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: linear-gradient(180deg, #0b0d10 0%, #0d1117 100%);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+h1 { font-size: clamp(1.25rem, 2vw + 1rem, 2rem); margin: 0; }
+.sub { color: var(--muted); font-size: 0.95rem; }
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn {
+  border: 1px solid #232a34;
+  background: #12161b;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+  user-select: none;
+}
+.btn:hover { transform: translateY(-1px); background: #161b22; }
+.btn:active { transform: translateY(0); }
+.btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 30%, transparent); }
+
+.search {
+  min-width: 220px;
+  flex: 1 1 240px;
+  display: flex; align-items: center; gap: 8px;
+  background: #0f1318; border: 1px solid #232a34; border-radius: 12px; padding: 8px 12px;
+}
+.search input {
+  width: 100%;
+  background: transparent; border: 0; outline: 0; color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* Gallery Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid #1c2128;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
+  aspect-ratio: 4/3;
+  cursor: zoom-in;
+  isolation: isolate;
+}
+.card img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transform: scale(1.02);
+  transition: transform 450ms ease, filter 300ms ease;
+}
+.card:hover img { transform: scale(1.07); filter: saturate(1.05) contrast(1.03); }
+
+.badge {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(15,18,24,0.75);
+  border: 1px solid #243043;
+  backdrop-filter: blur(6px);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 10px; border-radius: 999px;
+  pointer-events: none;
+}
+
+.caption {
+  position: absolute; inset: auto 0 0 0; padding: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 80%);
+  color: #eaf2ff;
+  translate: 0 20%;
+  opacity: 0;
+  transition: opacity 240ms ease, translate 240ms ease;
+  font-size: 0.95rem;
+}
+.card:hover .caption { opacity: 1; translate: 0 0; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.lightbox.open { display: flex; }
+
+.lightbox__inner {
+  width: min(92vw, 1100px);
+  height: min(86vh, 760px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  color: #e6edf3;
+}
+
+.lightbox__stage {
+  position: relative;
+  border-radius: 16px; overflow: hidden;
+  background: #0b0d10; border: 1px solid #1f2630;
+  display: grid; place-items: center;
+}
+.lightbox__stage img { width: 100%; height: 100%; object-fit: contain; }
+
+.nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(17,20,28,0.8);
+  border: 1px solid #2a3444; color: var(--text);
+  border-radius: 999px; padding: 10px 14px; cursor: pointer;
+  transition: background 160ms ease, transform 120ms ease;
+}
+.nav-btn:hover { background: rgba(17,20,28,0.92); }
+.nav-btn:active { transform: translateY(-50%) scale(0.98); }
+.nav-prev { left: 10px; }
+.nav-next { right: 10px; }
+
+.lightbox__meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 0.95rem; color: var(--muted);
+}
+
+.chip { padding: 6px 10px; border: 1px solid #2a3444; border-radius: 999px; }
+
+.toolbar {
+  display: flex; gap: 8px; align-items: center;
+}
+
+.toolbar .btn { padding: 6px 10px; }
+
+@media (max-width: 600px) {
+  .caption { font-size: 0.85rem; }
+  .nav-btn { padding: 8px 10px; }
+}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Image Gallery</h1>
+        <div class="sub">Hover to preview, click to open lightbox. Filter by category or search.</div>
+      </div><div class="controls" role="toolbar" aria-label="Gallery controls">
+    <button class="btn active" data-filter="all" aria-pressed="true">All</button>
+    <button class="btn" data-filter="nature">Nature</button>
+    <button class="btn" data-filter="city">City</button>
+    <button class="btn" data-filter="people">People</button>
+    <button class="btn" data-filter="animals">Animals</button>
+    <button class="btn" data-filter="abstract">Abstract</button>
+    <div class="search" aria-label="Search captions">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 21l-4.3-4.3m1.3-5.2A7.8 7.8 0 1 1 10.2 3a7.8 7.8 0 0 1 7.8 7.8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="searchInput" type="search" placeholder="Search captions..." />
+    </div>
+  </div>
+</header>
+
+<main class="grid" id="gallery" aria-live="polite"></main>
+
+  </div>  <!-- Lightbox -->  <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-label="Image viewer">
+    <div class="lightbox__inner">
+      <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px;">
+        <div id="lbTitle">&nbsp;</div>
+        <div class="toolbar">
+          <button class="btn" id="downloadBtn" title="Download">Download</button>
+          <button class="btn" id="closeBtn" title="Close (Esc)">Close</button>
+        </div>
+      </div>
+      <div class="lightbox__stage" id="stage">
+        <button class="nav-btn nav-prev" id="prevBtn" aria-label="Previous (←)">⟨</button>
+        <img id="stageImg" alt="Expanded gallery item" />
+        <button class="nav-btn nav-next" id="nextBtn" aria-label="Next (→)">⟩</button>
+      </div>
+      <div class="lightbox__meta">
+        <div>
+          <span id="lbIndex" class="chip"></span>
+          <span id="lbCat" class="chip"></span>
+        </div>
+        <div id="lbCaption"></div>
+      </div>
+    </div>
+  </div>  <script>
+    // --- Data ---------------------------------------------------------------
+    const IMAGES = [
+      { id: 1, src: "https://picsum.photos/id/1018/800/600", caption: "Misty ridge at dawn", category: "nature" },
+      { id: 2, src: "https://picsum.photos/id/1035/800/600", caption: "Sunlit forest stream", category: "nature" },
+      { id: 3, src: "https://picsum.photos/id/1011/800/600", caption: "City skyline at golden hour", category: "city" },
+      { id: 4, src: "https://picsum.photos/id/1025/800/600", caption: "Curious puppy portrait", category: "animals" },
+      { id: 5, src: "https://picsum.photos/id/1005/800/600", caption: "Architectural rhythms", category: "city" },
+      { id: 6, src: "https://picsum.photos/id/1000/800/600", caption: "Quiet desert road", category: "nature" },
+      { id: 7, src: "https://picsum.photos/id/1027/800/600", caption: "Gentle mare in field", category: "animals" },
+      { id: 8, src: "https://picsum.photos/id/102/800/600",  caption: "Neon night walk", category: "city" },
+      { id: 9, src: "https://picsum.photos/id/1001/800/600", caption: "Portrait in soft light", category: "people" },
+      { id: 10, src: "https://picsum.photos/id/1002/800/600", caption: "Studio profile shot", category: "people" },
+      { id: 11, src: "https://picsum.photos/id/1050/800/600", caption: "Shapes & gradients", category: "abstract" },
+      { id: 12, src: "https://picsum.photos/id/1047/800/600", caption: "Chromatic blur", category: "abstract" },
+    ];
+
+    // --- Gallery Rendering --------------------------------------------------
+    const gallery = document.getElementById('gallery');
+    const searchInput = document.getElementById('searchInput');
+
+    let activeFilter = 'all';
+    let query = '';
+
+    function renderGallery() {
+      const items = IMAGES.filter(({category, caption}) => {
+        const matchesFilter = activeFilter === 'all' || category === activeFilter;
+        const matchesQuery = caption.toLowerCase().includes(query.toLowerCase());
+        return matchesFilter && matchesQuery;
+      });
+
+      gallery.innerHTML = items.map((item, idx) => `
+        <figure class="card" tabindex="0" data-index="${idx}" data-id="${item.id}" data-category="${item.category}" aria-label="${item.caption}">
+          <span class="badge">${item.category}</span>
+          <img loading="lazy" src="${item.src}" alt="${item.caption}">
+          <figcaption class="caption">${item.caption}</figcaption>
+        </figure>
+      `).join('');
+
+      // Focus + click handlers
+      gallery.querySelectorAll('.card').forEach((el, idx) => {
+        el.addEventListener('click', () => openLightbox(items, idx));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(items, idx); }
+        });
+      });
+
+      // Keep current filtered list for lightbox navigation
+      currentList = items;
+    }
+
+    // --- Filters ------------------------------------------------------------
+    document.querySelectorAll('.btn[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn[data-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        renderGallery();
+      });
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      query = e.target.value.trim();
+      renderGallery();
+    });
+
+    // --- Lightbox -----------------------------------------------------------
+    const lightbox = document.getElementById('lightbox');
+    const stageImg = document.getElementById('stageImg');
+    const lbTitle = document.getElementById('lbTitle');
+    const lbCaption = document.getElementById('lbCaption');
+    const lbIndex = document.getElementById('lbIndex');
+    const lbCat = document.getElementById('lbCat');
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentList = [...IMAGES];
+    let currentIdx = 0;
+
+    function openLightbox(list, idx) {
+      currentList = list;
+      currentIdx = idx;
+      updateStage();
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function updateStage() {
+      const item = currentList[currentIdx];
+      if (!item) return;
+      stageImg.src = item.src;
+      stageImg.alt = item.caption;
+      lbTitle.textContent = item.caption;
+      lbCaption.textContent = item.caption;
+      lbIndex.textContent = `${currentIdx + 1} / ${currentList.length}`;
+      lbCat.textContent = item.category;
+      downloadBtn.onclick = () => { window.open(item.src, '_blank'); };
+    }
+
+    prevBtn.addEventListener('click', () => { currentIdx = (currentIdx - 1 + currentList.length) % currentList.length; updateStage(); });
+    nextBtn.addEventListener('click', () => { currentIdx = (currentIdx + 1) % currentList.length; updateStage(); });
+    closeBtn.addEventListener('click', closeLightbox);
+
+    // Close when clicking backdrop
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') { prevBtn.click(); }
+      if (e.key === 'ArrowRight') { nextBtn.click(); }
+    });
+
+    // Touch swipe for mobile
+    let startX = 0, endX = 0;
+    document.getElementById('stage').addEventListener('touchstart', (e) => {
+      startX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    document.getElementById('stage').addEventListener('touchend', (e) => {
+      endX = e.changedTouches[0].screenX;
+      const dx = endX - startX;
+      if (Math.abs(dx) > 40) {
+        if (dx < 0) nextBtn.click(); else prevBtn.click();
+      }
+    });
+
+    // Init
+    renderGallery();
+  </script></body>
+</html>
